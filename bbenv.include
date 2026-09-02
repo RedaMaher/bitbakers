@@ -1,21 +1,35 @@
+# Source this file to add BitBake to the current Bash environment:
+#
+#   source ./bbenv.include
+#
+# By default, BitBake is expected in the "bitbake" directory next to this
+# file. Set BITBAKE_ROOT_DIR before sourcing to use another location.
 
-#might possible not run with each shell, 
-#todo, test with zsh
-if [ "$BASH_SOURCE" = "$0" ] ; then
-    echo "not running included!"
-    echo "source this file to use it"
+if [ "${BASH_SOURCE[0]}" = "$0" ]; then
+    echo "ERROR: Do not execute this file directly."
+    echo "Use: source ./bbenv.include"
     exit 1
-fi 
-
-
-
-bbplay_root_dir=$(dirname $(readlink -f "$BASH_SOURCE"))
-bitbake_root_dir=$bbplay_root_dir/bitbake
-
-if [ -d $bitbake_root_dir ] ; then
-  export PATH=$bitbake_root_dir/bin:$PATH
-  export PYTHONPATH=$bitbake_root_dir/lib:$PYHTONPATH
-else
-  echo "ERROR: $bitbake_root_dir does not exist"
-  
 fi
+
+bbguide_root_dir="$(
+    cd "$(dirname "${BASH_SOURCE[0]}")" &&
+    pwd -P
+)"
+
+bitbake_root_dir="${BITBAKE_ROOT_DIR:-${bbguide_root_dir}/bitbake}"
+
+if [ ! -d "${bitbake_root_dir}/bin" ] ||
+   [ ! -d "${bitbake_root_dir}/lib" ]; then
+    echo "ERROR: BitBake was not found at:"
+    echo "  ${bitbake_root_dir}"
+    echo
+    echo "Clone BitBake there or set BITBAKE_ROOT_DIR before sourcing:"
+    echo "  export BITBAKE_ROOT_DIR=/path/to/bitbake"
+    return 1
+fi
+
+export PATH="${bitbake_root_dir}/bin:${PATH}"
+export PYTHONPATH="${bitbake_root_dir}/lib${PYTHONPATH:+:${PYTHONPATH}}"
+
+unset bbguide_root_dir
+unset bitbake_root_dir

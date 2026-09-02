@@ -8,7 +8,7 @@ def pyfunc(o):
 
   
 python do_mypatch () {
-  bb.note ("runnin mypatch")
+  bb.note ("running mypatch")
   pyfunc(d) 
 }
 
