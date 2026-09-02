@@ -6,7 +6,7 @@ do_build(){
 }
 
 python do_myvar_py () {
-  print ("myvar_py:" + d.getVar('MYVAR', True))
+  print ("myvar_py:" + d.getVar('MYVAR'))
 }
 
 addtask myvar_py before do_build

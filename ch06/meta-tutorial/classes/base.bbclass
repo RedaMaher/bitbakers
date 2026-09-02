@@ -19,20 +19,20 @@
 # OTHER DEALINGS IN THE SOFTWARE.
 
 die() {
-    bbfatal "$*"
+	bbfatal "$*"
 }
 
 bbnote() {
-    echo "NOTE:" "$*"
+	echo "NOTE:" "$*"
 }
 
 bbwarn() {
-    echo "WARNING:" "$*"
+	echo "WARNING:" "$*"
 }
 
 bbfatal() {
-    echo "FATAL:" "$*"
-    exit 1
+	echo "FATAL:" "$*"
+	exit 1
 }
 
 addtask showdata
@@ -41,10 +41,10 @@ python do_showdata() {
     import sys
     # emit variables and shell functions
     bb.data.emit_env(sys.__stdout__, d, True)
-    # emit the metadata which isnt valid shell
+    # emit the metadata which isn't valid shell
     for e in bb.data.keys(d):
         if d.getVarFlag(e, 'python', False):
-            bb.plain("\npython %s () {\n%s}" % (e, d.getVar(e, True)))
+            bb.plain("\npython %s () {\n%s}" % (e, d.getVar(e)))
 }
 
 addtask listtasks
