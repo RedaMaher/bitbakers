@@ -521,9 +521,12 @@ Shell tasks expand a variable as `${MYVAR}`; Python tasks read it from the datas
     cd "$HOME/bbTutorial/build"
     bitbake myvar
 
-Its log, under `build/tmp/work/myvar-0.1-r1/temp/`, should contain:
+Each task writes its own log file under `build/tmp/work/myvar-0.1-r1/temp/`: `log.do_myvar_py` should contain
 
     myvar_py:hello from MYVAR
+
+and `log.do_build` should contain
+
     myvar_sh: hello from MYVAR
 
 ### 9.2 Local variables
