@@ -1,4 +1,4 @@
-DESCRIPTION = "I am the third recepi"
+DESCRIPTION = "I am the third recipe"
 PR = "r1"
 inherit confbuild
 
