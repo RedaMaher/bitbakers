@@ -66,7 +66,7 @@ reason in the row) if you're stuck on something outside your control.
 | T0.1 | Fix `bitbakers/README.md` vs `chapters/` vs `chNN/` mismatch | — | | open | |
 | T0.2 | Add `scripts/check-chapter.sh <chNN> <targets…>` verification runner | — | | open | |
 | T0.3 | Create shared build area `shared/conf/shared.inc`, `shared/downloads/`, `shared/tmp/` | — | adn-dodo | claimed | |
-| T0.4 | Add `bitbakers/.gitignore` for build artifacts; confirm `git status` stays clean | — | | open | |
+| T0.4 | Add `bitbakers/.gitignore` for build artifacts; confirm `git status` stays clean | — | adn-dodo | claimed | |
 | T0.5 | Add `check-chapter.sh --no-rebuild` mode enforcing the additive rule | T0.2 | | open | |
 | T0.6 | Document host prerequisites (toolchain, qemu, e2fsprogs ≥1.43, disk/network) | — | | open | |
 | T0.7 | Pin upstream versions/checksums for Linux 7.2.6 and BusyBox 1.38.0 | — | | open | |
