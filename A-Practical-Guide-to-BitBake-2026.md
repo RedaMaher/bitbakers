@@ -563,3 +563,16 @@ Its log should contain:
 ## 10. Summary
 
 This tutorial used BitBake as a standalone task engine to practice: what BitBake actually does; the build/layer project layout; recipes, classes, tasks, and task ordering; multiple layers and how they relate to each other; the five metadata file types; and global and recipe-local variables.
+
+## Note for task 0.3
+
+In T0.3 I created one shared build area. Instead of every chapter having its own downloads and build output, they will all use 
+bitbakers/shared/.
+
+The shared directory contains shared/conf/shared.inc, shared/downloads/, and shared/tmp/.
+The main file is shared/conf/shared.inc.
+Inside shared.inc, I set DL_DIR to use the shared downloads directory and TMPDIR to use the shared tmp directory.
+This allows all chapters to reuse the same downloads and build output instead of creating them again for every chapter.
+I also set BB_NUMBER_THREADS to 4 and PARALLEL_MAKE to -j 8.
+If there is not enough space in $HOME, BBGUIDE_SHARED can be changed to point to another disk. Another option is to move the
+shared/ directory to another disk and use a symbolic link.
