@@ -64,7 +64,7 @@ reason in the row) if you're stuck on something outside your control.
 | Task | Description | Depends on | Assignee | Status | PR # |
 |------|--------------|------------|----------|--------|------|
 | T0.1 | Fix `bitbakers/README.md` vs `chapters/` vs `chNN/` mismatch | — | | open | |
-| T0.2 | Add `scripts/check-chapter.sh <chNN> <targets…>` verification runner | — | | open | |
+| T0.2 | Add `scripts/check-chapter.sh <chNN> <targets…>` verification runner | — | adn-dodo | claimed | |
 | T0.3 | Create shared build area `shared/conf/shared.inc`, `shared/downloads/`, `shared/tmp/` | — | adn-dodo | claimed | |
 | T0.4 | Add `bitbakers/.gitignore` for build artifacts; confirm `git status` stays clean | — | adn-dodo | claimed | |
 | T0.5 | Add `check-chapter.sh --no-rebuild` mode enforcing the additive rule | T0.2 | | open | |
