@@ -563,3 +563,10 @@ Its log should contain:
 ## 10. Summary
 
 This tutorial used BitBake as a standalone task engine to practice: what BitBake actually does; the build/layer project layout; recipes, classes, tasks, and task ordering; multiple layers and how they relate to each other; the five metadata file types; and global and recipe-local variables.
+
+## Note for task 0.4
+
+In T0.4 I updated the .gitignore file to ignore build files that should not be tracked by Git.
+
+This includes the shared tmp and downloads directories, chapter build cache and tmp directories, BitBake log and lock files, and generated .ext2 and .cpio.gz images.
+

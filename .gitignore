@@ -1,2 +1,8 @@
-
-**/build/tmp/**
+shared/tmp/
+shared/downloads/
+ch*/build/tmp/
+ch*/build/cache/
+ch*/build/bitbake-cookerdaemon.log
+ch*/build/*.lock
+*.ext2
+*.cpio.gz
