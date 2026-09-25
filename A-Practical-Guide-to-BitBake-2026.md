@@ -563,3 +563,16 @@ Its log should contain:
 ## 10. Summary
 
 This tutorial used BitBake as a standalone task engine to practice: what BitBake actually does; the build/layer project layout; recipes, classes, tasks, and task ordering; multiple layers and how they relate to each other; the five metadata file types; and global and recipe-local variables.
+
+
+## Note for task 0.2
+
+In T0.2 I created scripts/check-chapter.sh to make checking chapters easier.
+The script takes the chapter name first, then the BitBake command arguments.
+
+For example:
+./scripts/check-chapter.sh ch05 first
+
+It sources bbenv.include, enters the chapter build directory, then runs BitBake from there.
+I also made it fail clearly if the arguments are missing or if the chapter build directory does not exist.
+I tested it with a normal build,and with a chapter that does not exist.
