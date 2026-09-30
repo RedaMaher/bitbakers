@@ -669,7 +669,11 @@ The Python helper then:
 2. Creates a candidate image beside the final output, not by mounting a device.
 3. Runs `mke2fs -d` to populate ext2 from the assembled tree, using 1 KiB blocks,
    256-byte inodes and explicitly selected filesystem features. The larger
-   inodes avoid the deprecated 128-byte inode format's 2038 warning.
+   inodes avoid `mke2fs`'s warning about the deprecated 128-byte inode format.
+   This does not make ext2 timestamps safe beyond 2038: Linux still prints
+   `ext2 ... supports timestamps until 2038-01-19` when mounting this image.
+   That boot message is expected; this teaching filesystem is not a
+   long-term storage format.
 4. Sets the root inode and every copied entry to guest UID/GID `0:0`, using
    `debugfs`; host ownership is unchanged.
 5. Checks `debugfs` diagnostics as well as its exit status, because it can
