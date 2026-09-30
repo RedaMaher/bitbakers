@@ -70,7 +70,8 @@ source metadata, not writing Linux or BitBake themselves from scratch. Chapter 2
 introduces the host checker; Chapter 3 introduces bootstrap, the wrapper and
 all configuration. Later chapters introduce the remaining classes and recipes.
 You are reconstructing the same final project, not switching between chapter
-snapshots.
+snapshots. The one deliberate intermediate file is Chapter 5's fetch-only
+Linux recipe; Chapter 9 replaces it with the complete kernel recipe.
 
 The full configuration introduced early lists **all three layers** and loads
 machine/distro files immediately. Create their configuration files in Chapter 3
@@ -415,22 +416,54 @@ Before compiling anything, make the source inputs explicit. BitBake's fetcher
 understands both remote archives and `file://` inputs. We call that fetcher
 directly instead of importing another distribution's fetch class.
 
-**Inspect and, for reconstruction, create these full files in this order:**
+For reconstruction, start with just the fetching class, the local fragment
+and a **fetch-only** recipe. No compiler or deployment classes are needed yet.
+Create the directories:
 
-1. [fetch.bbclass](meta-core/classes/fetch.bbclass).
-2. [build.bbclass](meta-core/classes/build.bbclass), which inherits `fetch`.
-3. [deploy.bbclass](meta-core/classes/deploy.bbclass).
-4. [versatilepb.cfg](meta-bsp/recipes-kernel/linux/files/versatilepb.cfg).
-5. [qemu-versatile-pb.dts](meta-bsp/recipes-kernel/linux/files/qemu-versatile-pb.dts).
-6. [linux_7.2.6.bb](meta-bsp/recipes-kernel/linux/linux_7.2.6.bb), which inherits
-   both `build` and `deploy`.
+```sh
+mkdir -p meta-core/classes meta-bsp/recipes-kernel/linux/files
+```
 
-Do this before running any command below. Even `-c fetch` parses the entire
-recipe, so both inherited classes and their dependencies must already exist.
-The base class and machine/distro configuration were supplied in Chapter 3.
-We will execute only the fetch/unpack part here; Chapter 6 explains the build
-chain and Chapter 9 explains kernel configuration and deployment. Introducing
-their complete files now avoids depending on missing future-chapter files.
+**`meta-core/classes/fetch.bbclass`**
+
+```bitbake
+python do_fetch() {
+    bb.fetch2.Fetch((d.getVar("SRC_URI") or "").split(), d).download()
+}
+do_fetch[network] = "1"
+
+python do_unpack() {
+    bb.fetch2.Fetch((d.getVar("SRC_URI") or "").split(), d).unpack(d.getVar("WORKDIR"))
+}
+do_unpack[cleandirs] = "${S} ${B}"
+do_unpack[dirs] = "${WORKDIR}"
+do_fetch[file-checksums] = "${@bb.fetch2.get_checksum_file_list(d)}"
+addtask fetch before do_build
+addtask unpack after do_fetch before do_build
+```
+
+Copy the complete [versatilepb.cfg](meta-bsp/recipes-kernel/linux/files/versatilepb.cfg)
+to `meta-bsp/recipes-kernel/linux/files/versatilepb.cfg`. For now it is just a
+local input whose contents we will explain in Chapter 9.
+
+**Chapter 5 checkpoint: `meta-bsp/recipes-kernel/linux/linux_7.2.6.bb`**
+
+```bitbake
+SUMMARY = "Linux source inputs: fetching before compiling"
+LICENSE = "GPL-2.0-only"
+inherit fetch
+
+SRC_URI = "https://cdn.kernel.org/pub/linux/kernel/v7.x/linux-${PV}.tar.xz \
+           file://versatilepb.cfg"
+SRC_URI[sha256sum] = "039aef84f2b0994aeda3f4fcfc3d02ec9d7a9bbb9020ea264c43f446c860f606"
+```
+
+Save that block as the recipe when reconstructing. It is intentionally not
+the finished reference recipe. Chapter 9 explicitly replaces it. Readers
+using the complete checkout can leave their existing recipe alone and run
+the same fetch/unpack commands; those commands do not compile anything.
+Even `-c fetch` parses the whole recipe, so do not copy the final recipe into
+an incomplete reconstruction yet.
 
 `SRC_URI` names the archive and local configuration fragment.
 `FILESPATH` is the recipe's `files` directory. `do_fetch` downloads through
@@ -438,12 +471,8 @@ their complete files now avoids depending on missing future-chapter files.
 `S` and `B` when it actually reruns. The `file-checksums` task flag incorporates
 local fetch inputs into signature tracking.
 
-The QEMU-specific DTS is a separate local board-metadata input, referenced
-through `QEMU_DTS`, not an entry in `SRC_URI`. Its checksum belongs to
-`do_devicetree`, introduced in Chapter 9. Create it now because the full
-recipe includes that task even when you request only fetching. Its upstream
-`versatile-pb.dts` include comes from the Linux archive, not another local
-file you need to write.
+The QEMU-specific device tree is not needed for this checkpoint. Chapter 9
+introduces that separate input and its task-specific checksum.
 
 Our configuration sets `BB_STRICT_CHECKSUM = "1"`. The recipes pin SHA-256
 values for the exact upstream archive bytes:
@@ -482,25 +511,8 @@ it needs.
 [fetch.bbclass](meta-core/classes/fetch.bbclass) and the signature settings in
 [bitbake.conf](meta-core/conf/bitbake.conf).
 
-These are the full shared classes; type them if reconstructing:
-
-**`meta-core/classes/fetch.bbclass`**
-
-```bitbake
-python do_fetch() {
-    bb.fetch2.Fetch((d.getVar("SRC_URI") or "").split(), d).download()
-}
-do_fetch[network] = "1"
-
-python do_unpack() {
-    bb.fetch2.Fetch((d.getVar("SRC_URI") or "").split(), d).unpack(d.getVar("WORKDIR"))
-}
-do_unpack[cleandirs] = "${S} ${B}"
-do_unpack[dirs] = "${WORKDIR}"
-do_fetch[file-checksums] = "${@bb.fetch2.get_checksum_file_list(d)}"
-addtask fetch before do_build
-addtask unpack after do_fetch before do_build
-```
+Create the build class now when reconstructing. It inherits the fetching
+class from Chapter 5 and introduces the remaining ordered tasks.
 
 **`meta-core/classes/build.bbclass`**
 
@@ -531,7 +543,7 @@ For recipes inheriting `build`, the chain is:
 fetch -> unpack -> configure -> compile -> install -> build
 ```
 
-The Linux recipe additionally orders
+The final Linux recipe, introduced in Chapter 9, additionally orders
 `compile -> devicetree -> deploy -> build`; its inherited install task is a
 no-op. A custom board description can therefore be rebuilt and deployed
 without recompiling kernel C code.
@@ -701,8 +713,19 @@ need to be built into the kernel, not supplied as modules on that filesystem.
 [versatilepb.cfg](meta-bsp/recipes-kernel/linux/files/versatilepb.cfg) and
 [deploy.bbclass](meta-core/classes/deploy.bbclass).
 Also inspect our
-[qemu-versatile-pb.dts](meta-bsp/recipes-kernel/linux/files/qemu-versatile-pb.dts),
-already introduced for reconstruction in Chapter 5.
+[qemu-versatile-pb.dts](meta-bsp/recipes-kernel/linux/files/qemu-versatile-pb.dts).
+
+**Reconstruction checkpoint:** create the linked `deploy.bbclass` and
+`qemu-versatile-pb.dts` now. Then **replace the entire fetch-only recipe** from
+Chapter 5 with the complete linked `linux_7.2.6.bb`. Do not append it to the
+old recipe or leave two Linux recipes beside each other. `build.bbclass`
+already exists from Chapter 6. The full recipe can now parse and compile.
+The archive URL, checksum and fragment stay the same, so fetching can reuse
+the existing download.
+
+The local DTS includes the upstream `versatile-pb.dts` from the Linux archive.
+It is referenced through `QEMU_DTS`, not `SRC_URI`, so its checksum belongs
+only to `do_devicetree` rather than fetch/unpack.
 
 Configure runs the board defconfig, merges our fragment with
 `scripts/kconfig/merge_config.sh`, then runs `olddefconfig`. It checks that
@@ -795,7 +818,7 @@ userspace without implementing a package manager.
 **Inspect:** [component.bbclass](meta-core/classes/component.bbclass) and
 [busybox_1.38.0.bb](meta-distro/recipes-core/busybox/busybox_1.38.0.bb).
 For reconstruction, create the component class first, then the recipe.
-Its inherited `build` and `fetch` classes already exist from Chapter 5.
+Its inherited `build` and `fetch` classes already exist from Chapters 6 and 5.
 Chapter 11 explains staging in more detail, but its implementation must be
 present now for the BusyBox recipe to parse.
 
@@ -915,7 +938,7 @@ recipes in a special manual order.
 [simple-image.bb](meta-distro/recipes-core/images/simple-image.bb).
 For reconstruction, create the class and helper before the image recipe.
 The kernel, BusyBox and base-files recipes must already exist from Chapters
-5, 10 and 12. The helper is invoked through Python, so it does not need an
+9, 10 and 12. The helper is invoked through Python, so it does not need an
 executable permission bit.
 
 `IMAGE_INSTALL ?= "busybox base-files"` supplies the default staged components,

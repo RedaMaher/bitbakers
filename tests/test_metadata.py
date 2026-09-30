@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import tempfile
@@ -94,6 +95,44 @@ class MetadataTests(unittest.TestCase):
         self.bb("-g", "simple-image")
         graph = (self.project / "build/task-depends.dot").read_text()
         self.assertIn('"simple-image.do_rootfs" -> "hello-arm.do_stage"', graph)
+
+    def test_reconstruction_parses_before_and_after_kernel_checkpoint(self):
+        text = (ROOT / "TUTORIAL.md").read_text()
+        reconstruction = self.project / "reconstruction"
+        for filename, content in re.findall(
+            r"\*\*`([^`]+)`\*\*\n\n```bitbake\n(.*?)\n```", text, re.S
+        ):
+            if filename == "meta-core/classes/build.bbclass":
+                continue
+            destination = reconstruction / filename
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            destination.write_text(content + "\n")
+        recipe_name, recipe = re.search(
+            r"\*\*Chapter 5 checkpoint: `([^`]+)`\*\*\n\n```bitbake\n(.*?)\n```",
+            text, re.S,
+        ).groups()
+        destination = reconstruction / recipe_name
+        destination.parent.mkdir(parents=True)
+        destination.write_text(recipe + "\n")
+        fragment = "meta-bsp/recipes-kernel/linux/files/versatilepb.cfg"
+        (reconstruction / fragment).parent.mkdir()
+        shutil.copy2(ROOT / fragment, reconstruction / fragment)
+        shutil.copytree(self.project / "scripts", reconstruction / "scripts")
+        (reconstruction / "tools").mkdir()
+        (reconstruction / "tools/bitbake").symlink_to(ENGINE)
+        self.project = reconstruction
+        self.bb("hello")
+        output = self.bb("-c", "listtasks", "linux")
+        self.assertIn("do_unpack", output)
+        self.assertNotIn("do_compile", output)
+        for filename in (
+            "meta-core/classes/build.bbclass", "meta-core/classes/deploy.bbclass",
+            "meta-bsp/recipes-kernel/linux/files/qemu-versatile-pb.dts", recipe_name,
+        ):
+            shutil.copy2(ROOT / filename, reconstruction / filename)
+        output = self.bb("-c", "listtasks", "linux")
+        self.assertIn("do_compile", output)
+        self.assertIn("do_devicetree", output)
 
 
 if __name__ == "__main__":
