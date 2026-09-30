@@ -78,8 +78,9 @@ upstream physical-board DTS. It is not a physical-hardware portability or
 SD hotplug claim.
 
 Normal QEMU runs write to `rootfs.ext2`. Use `scripts/run-qemu --snapshot` to
-discard that run's disk writes. Shut the guest down with `poweroff`; see the
-tutorial before testing persistence or rebuilding an image containing data.
+discard that run's disk writes. Shut the guest down with `poweroff`, wait for
+`System halted instead`, then press Ctrl-a followed by x to exit QEMU.
+See the tutorial before testing persistence or rebuilding an image containing data.
 
 ## Find the implementation
 

@@ -746,9 +746,12 @@ sync
 poweroff
 ```
 
-Expected: the root mount is ext2 and writable, and the guest shuts down.
-If QEMU remains open after guest shutdown, use its escape sequence:
-press **Ctrl-a**, release, then **x**. Do not terminate a running guest during
+Expected: the root mount is ext2 and writable. On this board, `poweroff`
+finishes with `reboot: Power off not available: System halted instead`.
+The guest has halted safely, but QEMU stays open: press **Ctrl-a**, release,
+then **x** to exit to the host. Do this after **every** `poweroff` in this
+chapter, waiting for the halt message first. This is an emulated-board
+limitation, not a failed shutdown. Do not terminate a running guest during
 disk writes if you want to preserve filesystem consistency.
 
 Start it again from the **host**, without rebuilding:
