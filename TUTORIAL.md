@@ -81,6 +81,21 @@ will fail before you can build `hello`.
 This work requires no parent repository. Nothing in the instructions
 automatically creates a project Git commit or remote.
 
+### Plan time and disk space
+
+The earlier clean reconstruction used about **2.3 GB** for source downloads,
+the engine and build output. Allow at least **5 GB free** for a single tree
+and extra space for independent validation builds and image backups. On the
+tested four-core host with `-j 4`, Linux compilation took about **14 minutes**
+and BusyBox fetch/build about **3 minutes**. Budget roughly **25 minutes of
+machine time**, excluding package installation and reading/typing the lessons;
+a first learning session will take substantially longer.
+
+These are observations, not minimum hardware guarantees. Downloads, slow
+storage and fewer CPUs can increase the time. Check `df -h .` for free disk
+space. Leave kernel builds running while they compile; task output is captured
+in logs even when the terminal is quiet.
+
 ## Chapter 2 — Prepare the Linux host
 
 The build runs as your normal user. Only installation of host packages and
