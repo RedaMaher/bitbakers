@@ -880,6 +880,14 @@ tasks now.” The second command requests normal build completion, including
 installation as required by the invalidated dependencies.
 Prefer `-C configure <recipe>` for a configure-and-downstream rebuild.
 
+Both `-f` and `-C` deliberately mark a task as **tainted**: it was forced
+rather than rebuilt solely because a tracked input changed. Later commands
+can keep printing `WARNING: ... is tainted from a forced run`, even when all
+tasks are reused successfully. This warning is expected after these exercises,
+not a compilation failure. Prefer ordinary builds after metadata edits;
+do not repeatedly force tasks just to try to clear the warning. The clean
+build-state reset in Chapter 16 removes taints along with all other stamps.
+
 There is no `do_clean`, `cleanall`, `cleansstate`, packaging task, compiler
 sysroot task or custom interactive configuration task in this project.
 Do not copy commands from a larger metadata framework and assume they exist.
