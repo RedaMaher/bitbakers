@@ -1,5 +1,6 @@
 /tools/
 /downloads/
+/backups/
 /build/tmp/
 /build/cache/
 /build/bitbake*

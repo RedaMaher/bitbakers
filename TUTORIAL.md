@@ -1204,8 +1204,38 @@ dependency graph files. The wrapper changes directory to `build`, so graph
 outputs are there, not beside your shell's current directory.
 Read the failed task's `log.do_<task>`; `run.do_<task>` shows its generated
 execution script.
+The unnumbered names are symlinks to the latest execution, such as
+`log.do_compile.12345` and `run.do_compile.12345`. The numeric suffix is the
+task process ID, not a recipe version. Older numbered files let you compare
+executions; `ls -l` shows which one the current link selects.
 
 ### Rebuild after an intentional edit
+
+**Before this section (or Chapter 14's optional image exercise):** shut down
+QEMU and exit it. Back up any disk you want to keep, including the persistence
+token from Chapter 14. Image rebuilding creates a fresh filesystem; it does
+not merge guest-written files into the new image.
+
+On the **host**, from the project root:
+
+```sh
+mkdir -p backups
+backup="backups/rootfs-$(date +%Y%m%d-%H%M%S).ext2"
+if test -e "$backup"; then
+    echo "Backup already exists; choose another filename." >&2
+else
+    cp --sparse=always build/tmp/deploy/images/versatilepb/rootfs.ext2 "$backup" \
+        && printf 'Saved disk: %s\n' "$backup"
+fi
+```
+
+If the copy command fails, stop and fix it before rebuilding. Keep backups
+outside `build/tmp`, because Chapter 16 deletes that directory. Backups are
+ignored by Git. To restore, stop QEMU first and copy the chosen backup over
+`build/tmp/deploy/images/versatilepb/rootfs.ext2`; use it with the matching
+kernel/DTB if you have changed those too. A later image rebuild can replace
+it again. Losing the Chapter 14 token after these rebuild exercises is
+expected, not a persistence bug.
 
 Edit source metadata, not generated `.config`, work directories or component
 trees. For example, after changing BusyBox configuration in its recipe:
