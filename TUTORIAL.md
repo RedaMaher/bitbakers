@@ -18,8 +18,8 @@ you to inspect exact linked files, explains the relevant part, then builds or
 checks one increment. Do not expect a separate source tree for every chapter.
 Commands below run in this repository's root unless marked **guest**.
 Results labeled “Expected” describe what should happen in your run. Chapter
-16 separately records the completed build, image tests and two-boot persistence
-validation; it does not claim a second full clean-checkout rebuild.
+16 teaches you to validate your own result; [VALIDATION.md](VALIDATION.md)
+separately records observed builds and tests.
 
 **Inspect:** [README.md](README.md), [.gitignore](.gitignore) and
 [LICENSE](LICENSE).
@@ -1056,8 +1056,8 @@ scripts/run-qemu
 
 Expected: kernel boot output, then
 `BitBaker Linux: writable ext2 root ready`, and a root shell prompt.
-These are the expected observations for this manual run; the automated
-two-boot validation recorded in Chapter 16 has also succeeded.
+These are the expected observations for your manual run. Recorded test
+results live in [VALIDATION.md](VALIDATION.md).
 
 At that **guest** prompt:
 
@@ -1330,8 +1330,13 @@ different things. Keep those reports separate.
 [scripts/make-image.py](scripts/make-image.py).
 
 **Inspect:** [tests/test_image.py](tests/test_image.py) and
-[scripts/smoke-test.py](scripts/smoke-test.py). For reconstruction, create
-these files now; neither is required for earlier chapter commands.
+[scripts/smoke-test.py](scripts/smoke-test.py), plus
+[tests/test_metadata.py](tests/test_metadata.py) and
+[tests/test_tutorial.py](tests/test_tutorial.py). For reconstruction, copy
+these files now, along with the final `README.md`, `TUTORIAL.md` and
+`VALIDATION.md` from the reference project. They are not prerequisites for
+the earlier builds. Restore optional exercise edits before checking the
+reference examples against the files you typed.
 
 The available validation commands are:
 
@@ -1347,10 +1352,13 @@ ownership (including a pathname with a space and a symlink), `/tmp` mode,
 symlink target and replacement after rebuilding. It requires `e2fsprogs`;
 without those tools it is skipped. These checks do not need a kernel build.
 
-**Observed image-helper validation:** all five image tests passed, including
-the real filesystem test, after the image-helper change to 256-byte inodes.
-For your own run, expect five successful tests with no skipped filesystem
-test. A runner discovering zero tests is not useful validation.
+The metadata tests create isolated temporary projects, reuse the bootstrapped
+engine, and check ambient-environment stability, recipe-edit signatures, the
+fetch-only reconstruction checkpoint and optional program staging/selection.
+They require the engine and the host cross compiler, but no kernel build or
+network downloads. Documentation tests check inline reference content and
+local links. Expect **10 tests**, all passing with **no skips** after host
+setup and bootstrap. A runner discovering zero tests is not useful validation.
 
 The smoke test requires `zImage`, `versatile-pb.dtb`, `rootfs.ext2`,
 `run-qemu.sh` and QEMU. It uses the **same generated launcher** as
@@ -1367,47 +1375,22 @@ message. Expected success output includes `PASS: WRITE-OK` and
 `PASS: PERSISTENCE-OK`. Serial transcripts are saved in
 `build/tmp/test-logs/first-boot.log` and `second-boot.log`.
 
-### Observed system validation
-
-The kernel and userspace were built successfully. Static ARMv5 ELF output
-was verified, and the generated rootfs size was exactly **67,108,864 bytes**.
-The actual smoke-test run passed both `WRITE-OK` and `PERSISTENCE-OK`: two
-boots on a copied ext2 disk demonstrated that guest-written data survived a
-clean halt and restart. The serial transcripts are the two log files above.
-
-The final five-test image suite and final two-boot smoke test were rerun
-successfully. Repeating the combined build also verified task reuse:
+### Check incremental reuse
 
 ```sh
 scripts/bb hello-arm simple-image
 ```
 
-Observed: **27 of 27 tasks did not need to rerun**. This records the unchanged
-final tree's incremental result, not a fixed task-count requirement for future
-modifications.
+Run it twice without editing inputs. Expected on the second invocation:
+all tasks reused (27 for the default reference configuration). Task counts
+can change if you add components. If work reruns unexpectedly, inspect its
+inputs and signatures using Chapter 6 instead of assuming the cache failed.
 
-An additional ad hoc validation booted the public
-`scripts/run-qemu --snapshot` wrapper, wrote `/root/snapshot-check` in the
-guest, synced and halted. The original `rootfs.ext2` SHA-256 was identical
-before and after that run, verifying that its writes did not alter the
-deployed disk. This snapshot check was separate from the delivered
-`scripts/smoke-test.py`, which tests persistence across two boots of a copied
-disk without snapshot mode.
-
-This validation used Python **3.14.4**, GCC **15.2.0**, QEMU **10.2.1** and
-e2fsprogs **1.47.2**. Missing host dependencies were extracted from distro
-packages into ignored `tools/host`, without changing system packages or using
-`sudo`. Local validation-only `tools/with-host` and the BitBake
-`-R tools/host.conf` configuration supplied those tools to the build.
-These are not committed helpers or source prerequisites. Readers should use
-the normal Chapter 2 host provisioning rather than depend on that local
-validation environment.
-
-The successful run included the fixes explained above: QEMU-specific SD
-description, disabled BusyBox `tc`, consistent BusyBox install flags and the
-generated launcher's audio option. It is a completed build-and-boot result,
-not evidence of a second full rebuild in a fresh checkout. No such second
-full rebuild has been performed.
+For your own test report, record the source commit, host OS/tool versions,
+commands, pass/fail/skip counts, image size, boot outputs and whether you
+started without caches. A boot test does not prove all applets work or that
+the system is production-ready. See [VALIDATION.md](VALIDATION.md) for
+observations from actual runs, separate from these instructions.
 
 ### Reproduce from a clean source checkout
 

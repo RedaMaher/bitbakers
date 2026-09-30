@@ -50,10 +50,10 @@ scripts/run-qemu
 ```
 
 The kernel and userspace have been built, and the two-boot writable-ext2
-persistence smoke test has passed. See the validation details below and in
-Chapter 16. Tutorial command descriptions remain expected results for your
-run, not a claim of a second full rebuild from a clean checkout. The first
-source builds require network access, disk space and time.
+persistence smoke test has passed. See [VALIDATION.md](VALIDATION.md) for
+recorded results and Chapter 16 for checks to perform yourself. Tutorial
+command descriptions remain expected results for your run. The first source
+builds require network access, disk space and time.
 
 The image build also schedules its required BusyBox, base-files and kernel
 tasks automatically. `hello-arm` is a separate teaching target; it is not
@@ -134,26 +134,9 @@ python3 -m unittest discover -s tests -v
 python3 scripts/smoke-test.py
 ```
 
-Observed validation:
-
-- All five [`image tests`](tests/test_image.py) passed with 256-byte inodes,
-  including real ext2 creation, contents, ownership, modes, symlinks and replacement.
-- Kernel and userspace built; static ARMv5 ELF output was verified.
-- `rootfs.ext2` is exactly 67,108,864 bytes.
-- The [`smoke test`](scripts/smoke-test.py) passed both `WRITE-OK` and
-  `PERSISTENCE-OK` on a **copy** of the image; serial logs are under
-  `build/tmp/test-logs/`.
-- A repeated `hello-arm` + `simple-image` build skipped all 27 tasks.
-- An additional ad hoc check booted `scripts/run-qemu --snapshot`, wrote
-  `/root/snapshot-check`, synced and halted; the original image's SHA-256
-  remained identical. This check is separate from the delivered smoke test.
-
-The final five-test image suite and two-boot smoke test were both rerun
-successfully.
-
-Validation used Python 3.14.4, GCC 15.2.0, QEMU 10.2.1 and e2fsprogs 1.47.2.
-Missing host packages were extracted locally for validation without `sudo`;
-normal readers should follow Chapter 2's package provisioning. A second full
-clean-checkout rebuild has not been performed. See
+The suite covers image contents/ownership, metadata signatures, reconstruction
+checkpoints, optional program staging and documentation consistency. Bootstrap
+and install host tools first so integration tests do not skip. See
+[VALIDATION.md](VALIDATION.md) for measured results and
 [Chapter 16](TUTORIAL.md#chapter-16--validation-and-a-clean-checkout)
-for the validation environment and reproduction instructions.
+for reproduction instructions.

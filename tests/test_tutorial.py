@@ -17,6 +17,14 @@ class TutorialTests(unittest.TestCase):
             with self.subTest(filename=filename):
                 self.assertEqual((ROOT / filename).read_text(), content + "\n")
 
+    def test_local_document_links_exist(self):
+        for document in ("README.md", "TUTORIAL.md", "VALIDATION.md"):
+            for target in re.findall(r"\[[^\]]+\]\(([^)]+)\)", (ROOT / document).read_text()):
+                if "://" in target or target.startswith("#"):
+                    continue
+                with self.subTest(document=document, target=target):
+                    self.assertTrue((ROOT / target.split("#", 1)[0]).exists())
+
 
 if __name__ == "__main__":
     unittest.main()
