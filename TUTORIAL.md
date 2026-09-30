@@ -143,6 +143,12 @@ scripts/bootstrap
 
 Expected: `BitBake 2.18.0 verified at .../tools/bitbake`.
 This is the only engine checkout needed.
+Some Git versions print `warning: refs/tags/2.18.0 ... is not a commit!`
+while resolving this annotated release tag. Bootstrap verifies the resulting
+commit independently; the final verification message and a zero exit status
+are the success checks. The checkout deliberately has a detached HEAD
+(a fixed release, not a branch to develop on); bootstrap suppresses Git's
+lengthy advice about it. Do not edit files inside `tools/bitbake`.
 
 **Inspect these complete configuration files now:**
 
