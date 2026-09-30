@@ -227,6 +227,13 @@ Task stdout may be captured in the log rather than printed in the normal
 console progress output. `do_listtasks` is marked `nostamp`, so asking for
 the list runs it each time.
 
+When reconstructing, expect `WARNING: No bb files ... matched
+BBFILE_PATTERN_bsp` and `BBFILE_PATTERN_distro`. We enabled those layers in
+Chapter 3 but have not added their recipes yet. These particular warnings
+disappear as you create recipes in Chapters 5 and 10; they do not mean the
+greeting failed. Check the task summary for `all succeeded`. A missing recipe
+warning in a layer that should already contain recipes needs investigation.
+
 ## Chapter 5 — Fetching, local files and checksums
 
 Before compiling anything, make the source inputs explicit. BitBake's fetcher
