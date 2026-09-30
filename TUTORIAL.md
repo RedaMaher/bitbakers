@@ -570,6 +570,64 @@ signature generation rather than a normal task execution.
 These hashes do not make an unpinned host compiler reproducible. Record your
 host tool versions when comparing builds.
 
+### Exercise: predict, edit, build, compare
+
+Before running this, predict which task must rerun if only the greeting text
+changes. No compiler, kernel or downloads are involved.
+
+First save the current signature (the newest one, even after earlier runs):
+
+```sh
+scripts/bb hello
+mkdir -p build/tmp/tutorial-signatures
+before=$(ls -t build/tmp/stamps/versatilepb/hello-1.0-r0.do_greet.sigdata.* | head -n 1)
+cp "$before" build/tmp/tutorial-signatures/before.sigdata
+```
+
+Edit the **source recipe**, not its generated task script. This command changes
+the string in the Chapter 4 recipe:
+
+```sh
+sed -i 's/Hello from standalone BitBake!/Hello from my edited recipe!/' \
+    meta-core/recipes-demo/hello/hello_1.0.bb
+scripts/bb hello
+cat build/tmp/work/versatilepb/hello-1.0-r0/temp/log.do_greet
+after=$(ls -t build/tmp/stamps/versatilepb/hello-1.0-r0.do_greet.sigdata.* | head -n 1)
+cp "$after" build/tmp/tutorial-signatures/after.sigdata
+```
+
+Expected: `do_greet` runs and prints `Hello from my edited recipe!` in its
+log. `do_build` is a no-execution completion task. An immediate `scripts/bb
+hello` should now reuse both tasks.
+
+Dump each signature using the engine tool's explicit path:
+
+```sh
+tools/bitbake/bin/bitbake-dumpsig build/tmp/tutorial-signatures/before.sigdata \
+    > build/tmp/tutorial-signatures/before.txt
+tools/bitbake/bin/bitbake-dumpsig build/tmp/tutorial-signatures/after.sigdata \
+    > build/tmp/tutorial-signatures/after.txt
+diff -u build/tmp/tutorial-signatures/before.txt build/tmp/tutorial-signatures/after.txt
+```
+
+Expected: the diff shows a changed `do_greet` value and hashes. `diff` returns
+**1 when differences exist**, which is success for this exercise (0 means
+identical; values above 1 mean an error). `bitbake-diffsigs`, including its
+two-file mode, initializes Tinfoil in this engine release and is not supported
+by this minimal metadata. Use single-file `bitbake-dumpsig` plus `diff` here.
+
+Restore the original lesson and build again:
+
+```sh
+sed -i 's/Hello from my edited recipe!/Hello from standalone BitBake!/' \
+    meta-core/recipes-demo/hello/hello_1.0.bb
+scripts/bb hello
+```
+
+The task code is an input to its signature. Stamps are not simply a record
+that a recipe has run at some point; they tell BitBake which version of its
+inputs was completed.
+
 ## Chapter 7 — Cross-compile a tiny ARM program
 
 The host CPU runs the compiler; the generated program runs on ARM. A static

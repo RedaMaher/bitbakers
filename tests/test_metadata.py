@@ -39,6 +39,8 @@ class MetadataTests(unittest.TestCase):
 
     def test_ambient_environment_does_not_rebuild_but_recipe_edit_does(self):
         self.bb("hello")
+        stamps = self.project / "build/tmp/stamps/versatilepb"
+        before = next(stamps.glob("hello-1.0-r0.do_greet.sigdata.*"))
         log = self.project / "build/tmp/work/versatilepb/hello-1.0-r0/temp/log.do_greet"
         original_log = log.resolve()
         empty = self.project / "empty-bin"
@@ -61,6 +63,18 @@ class MetadataTests(unittest.TestCase):
         self.bb("hello", env=changed_env)
         self.assertNotEqual(log.resolve(), original_log)
         self.assertIn("Hello from my edited recipe!", log.read_text())
+        after = next(path for path in stamps.glob("hello-1.0-r0.do_greet.sigdata.*")
+                     if path != before)
+        dumps = [
+            subprocess.run(
+                [str(ENGINE / "bin/bitbake-dumpsig"), str(path)],
+                check=True, text=True, capture_output=True, timeout=30,
+            ).stdout
+            for path in (before, after)
+        ]
+        self.assertIn("Hello from standalone BitBake!", dumps[0])
+        self.assertIn("Hello from my edited recipe!", dumps[1])
+        self.assertNotEqual(dumps[0], dumps[1])
 
 
 if __name__ == "__main__":
