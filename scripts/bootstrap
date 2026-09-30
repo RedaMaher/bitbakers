@@ -1,0 +1,19 @@
+#!/bin/sh
+set -eu
+root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+revision=33581c84f3a85008239acbd940501a35de48dc91
+destination="$root/tools/bitbake"
+if [ ! -d "$destination" ]; then
+    mkdir -p "$root/tools"
+    git clone --branch 2.18.0 --depth 1 https://git.openembedded.org/bitbake "$destination"
+fi
+actual=$(git -C "$destination" rev-parse HEAD)
+if [ "$actual" != "$revision" ]; then
+    echo "ERROR: expected BitBake $revision, found $actual in $destination" >&2
+    exit 1
+fi
+if [ -n "$(git -C "$destination" status --porcelain)" ]; then
+    echo "ERROR: BitBake checkout has local changes: $destination" >&2
+    exit 1
+fi
+echo "BitBake 2.18.0 verified at $destination"

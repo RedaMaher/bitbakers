@@ -1,0 +1,14 @@
+#!/bin/sh
+set -eu
+root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+if [ ! -x "$root/tools/bitbake/bin/bitbake" ]; then
+    echo "ERROR: run scripts/bootstrap first" >&2
+    exit 1
+fi
+case "$root" in
+    *" "*) echo "ERROR: use a checkout path without spaces for upstream Makefiles" >&2; exit 1 ;;
+esac
+export PATH="$root/tools/bitbake/bin:/usr/sbin:/sbin:$PATH"
+unset BBPATH BBFILES BBLAYERS BUILDDIR
+cd "$root/build"
+exec bitbake "$@"

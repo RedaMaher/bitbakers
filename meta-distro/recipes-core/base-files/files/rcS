@@ -1,0 +1,4 @@
+#!/bin/sh
+set -eu
+mount -a
+echo "BitBaker Linux: writable ext2 root ready"

@@ -1,0 +1,12 @@
+#include "versatile-pb.dts"
+
+&{/amba/fpga/mmc@5000} {
+    /* QEMU does not wire SYS_MCI card detect; the SD card stays inserted. */
+    non-removable;
+    /* QEMU routes PL181 command/FIFO IRQs differently from physical PB. */
+    interrupts-extended = <&sic 22 &sic 1>;
+};
+
+&{/amba/fpga/mmc@b000} {
+    status = "disabled";
+};

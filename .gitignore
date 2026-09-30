@@ -1,0 +1,12 @@
+/tools/
+/downloads/
+/build/tmp/
+/build/cache/
+/build/bitbake*
+/build/*.lock
+/build/*.sock
+/build/*.dot
+/build/pn-buildlist
+/build/console-latest.log
+/tests/__pycache__/
+/scripts/__pycache__/

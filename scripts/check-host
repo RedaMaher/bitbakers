@@ -1,0 +1,19 @@
+#!/bin/sh
+set -eu
+export PATH="/usr/sbin:/sbin:$PATH"
+missing=0
+for tool in git python3 make gcc g++ arm-linux-gnueabi-gcc arm-linux-gnueabi-readelf \
+    qemu-system-arm mke2fs debugfs e2fsck wget tar xz bzip2 patch bc bison flex file; do
+    if ! command -v "$tool" > /dev/null 2>&1; then
+        echo "ERROR: missing tool: $tool" >&2
+        missing=1
+    fi
+done
+if [ "$missing" -ne 0 ]; then
+    echo "Install the host packages listed in TUTORIAL.md, Chapter 2." >&2
+    exit 1
+fi
+python3 -c 'import sys; assert sys.version_info >= (3, 9), "Python >= 3.9 required"'
+python3 -c 'import locale; locale.setlocale(locale.LC_ALL, "en_US.UTF-8")'
+mke2fs -V
+echo "Host commands and BitBake locale available; development headers are checked during compilation."

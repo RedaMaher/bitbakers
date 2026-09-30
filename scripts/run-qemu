@@ -1,0 +1,22 @@
+#!/bin/sh
+set -eu
+root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+snapshot=
+case "${1:-}" in
+    --snapshot) snapshot=-snapshot; shift ;;
+    "") ;;
+    *) echo "Usage: scripts/run-qemu [--snapshot]" >&2; exit 2 ;;
+esac
+if [ "$#" -ne 0 ]; then
+    echo "Usage: scripts/run-qemu [--snapshot]" >&2
+    exit 2
+fi
+deploy="$root/build/tmp/deploy/images/versatilepb"
+for artifact in zImage versatile-pb.dtb rootfs.ext2 run-qemu.sh; do
+    if [ ! -s "$deploy/$artifact" ]; then
+        echo "ERROR: missing $deploy/$artifact; run scripts/bb simple-image" >&2
+        exit 1
+    fi
+done
+exec "$deploy/run-qemu.sh" \
+    -drive "file=$deploy/rootfs.ext2,if=sd,format=raw" $snapshot
