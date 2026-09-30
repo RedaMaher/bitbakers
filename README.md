@@ -58,6 +58,8 @@ source builds require network access, disk space and time.
 The image build also schedules its required BusyBox, base-files and kernel
 tasks automatically. `hello-arm` is a separate teaching target; it is not
 installed in the default image.
+Chapter 14 includes an optional exercise that stages `hello-arm`, selects it
+with `IMAGE_INSTALL` in `local.conf`, and runs it at the guest console.
 
 Expected deploy directory:
 

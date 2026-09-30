@@ -20,6 +20,7 @@ class MetadataTests(unittest.TestCase):
             shutil.copytree(ROOT / directory, self.project / directory)
         (self.project / "scripts").mkdir()
         shutil.copy2(ROOT / "scripts/bb", self.project / "scripts/bb")
+        shutil.copy2(ROOT / "scripts/make-image.py", self.project / "scripts/make-image.py")
         (self.project / "tools").mkdir()
         (self.project / "tools/bitbake").symlink_to(ENGINE)
         self.env = os.environ.copy()
@@ -75,6 +76,24 @@ class MetadataTests(unittest.TestCase):
         self.assertIn("Hello from standalone BitBake!", dumps[0])
         self.assertIn("Hello from my edited recipe!", dumps[1])
         self.assertNotEqual(dumps[0], dumps[1])
+
+    @unittest.skipUnless(shutil.which("arm-linux-gnueabi-gcc"), "cross compiler required")
+    def test_optional_program_is_staged_and_selected_by_local_configuration(self):
+        self.assertIn('IMAGE_INSTALL="busybox base-files"', self.bb("-e", "simple-image"))
+        recipe = self.project / "meta-core/recipes-demo/hello-arm/hello-arm_1.0.bb"
+        recipe.write_text(recipe.read_text().replace("inherit build", "inherit component"))
+        local = self.project / "build/conf/local.conf"
+        local.write_text(local.read_text() + '\nIMAGE_INSTALL = "busybox base-files hello-arm"\n')
+        self.assertIn(
+            'IMAGE_INSTALL="busybox base-files hello-arm"', self.bb("-e", "simple-image")
+        )
+        self.bb("hello-arm")
+        installed = self.project / "build/tmp/work/versatilepb/hello-arm-1.0-r0/image/usr/bin/hello-arm"
+        staged = self.project / "build/tmp/components/versatilepb/hello-arm/usr/bin/hello-arm"
+        self.assertEqual(installed.read_bytes(), staged.read_bytes())
+        self.bb("-g", "simple-image")
+        graph = (self.project / "build/task-depends.dot").read_text()
+        self.assertIn('"simple-image.do_rootfs" -> "hello-arm.do_stage"', graph)
 
 
 if __name__ == "__main__":

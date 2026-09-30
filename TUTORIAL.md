@@ -918,7 +918,9 @@ The kernel, BusyBox and base-files recipes must already exist from Chapters
 5, 10 and 12. The helper is invoked through Python, so it does not need an
 executable permission bit.
 
-`IMAGE_INSTALL = "busybox base-files"` lists staged components, not packages.
+`IMAGE_INSTALL ?= "busybox base-files"` supplies the default staged components,
+not packages. `?=` assigns only if the variable is not already set, so
+`local.conf` or an image recipe can select components explicitly.
 `do_rootfs[depends]` expands to their `do_stage` tasks.
 `do_image[depends] = "linux:do_deploy"` ensures the kernel and DTB are deployed
 before the image task runs. `simple-image` therefore schedules all required
@@ -1088,6 +1090,58 @@ previously persisted content.
 Never run two QEMU instances against the same writable image, and never run
 image creation while QEMU is using it. Back up valuable guest data before any
 rebuild that could rerun `do_image`.
+
+### Optional exercise: put your ARM program in the distro
+
+Now connect Chapter 7 to the running system. Predict the missing steps:
+`hello-arm` installs to its private `D`, but is neither staged nor selected by
+the default image. Exit QEMU first and back up the disk as shown in Chapter 15.
+This exercise intentionally rebuilds (and replaces) the root disk.
+
+On the **host**, change the recipe to inherit `component`, which itself
+inherits `build`, and choose the additional image component:
+
+```sh
+sed -i 's/^inherit build$/inherit component/' \
+    meta-core/recipes-demo/hello-arm/hello-arm_1.0.bb
+```
+
+Add this line to `build/conf/local.conf` (only once):
+
+```bitbake
+IMAGE_INSTALL = "busybox base-files hello-arm"
+```
+
+```sh
+scripts/bb simple-image
+ls -l build/tmp/components/versatilepb/hello-arm/usr/bin/hello-arm
+scripts/run-qemu --snapshot
+```
+
+At the **guest** prompt:
+
+```sh
+hello-arm
+poweroff
+```
+
+Expected: `Hello from ARM userspace!`. Wait for the halt message, then
+Ctrl-a x. You did not need to build `hello-arm` separately: the image's
+`do_rootfs[depends]` scheduled its `do_stage` and prerequisites automatically.
+This is the full path: source -> compile -> install -> stage -> rootfs -> guest.
+
+To return to the reference configuration, remove your `IMAGE_INSTALL` line
+from `build/conf/local.conf` and run on the **host**:
+
+```sh
+sed -i 's/^inherit component$/inherit build/' \
+    meta-core/recipes-demo/hello-arm/hello-arm_1.0.bb
+scripts/bb simple-image
+```
+
+Expected: the default rootfs no longer contains `/usr/bin/hello-arm`. An old
+staging directory may remain on the host, but the image only collects the
+components currently selected by `IMAGE_INSTALL`.
 
 ## Chapter 15 — Debug and iterate without invented tasks
 

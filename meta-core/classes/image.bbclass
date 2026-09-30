@@ -1,5 +1,5 @@
 IMAGE_ROOTFS = "${WORKDIR}/rootfs"
-IMAGE_INSTALL = "busybox base-files"
+IMAGE_INSTALL ?= "busybox base-files"
 IMAGE_BUILDER = "${TOPDIR}/../scripts/make-image.py"
 
 python do_rootfs() {
