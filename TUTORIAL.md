@@ -321,6 +321,14 @@ dependencies. Stamps record completed task signatures so unchanged work can
 be skipped. Fetch inputs have checksum tracking; later the image helper gets
 explicit tracking too. `BB_NUMBER_THREADS` and `PARALLEL_MAKE` are ignored for
 base hashes: changing parallelism alone is not intended to change output.
+The ambient host variables `PATH`, `HOME`, `USER`, `LOGNAME`, `PWD` and
+`SHELL` are also excluded. Merely opening another terminal or adding an
+unused directory to `PATH` must not recompile everything and replace the
+guest disk. These exclusions are policy, not proof of identical toolchains:
+if you change the compiler or tools selected by `PATH`, explicitly invalidate
+affected tasks (Chapter 15), or rebuild from clean state. Recipes must not
+use the excluded user/environment values to generate target content; put
+such choices in a separately named, tracked metadata variable instead.
 There is no shared-state artifact cache in these classes.
 
 ```sh
