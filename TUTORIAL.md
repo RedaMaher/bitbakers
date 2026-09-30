@@ -60,10 +60,13 @@ This command requires Git. If it is not installed yet, defer just this command
 until Chapter 2 has provisioned the host; directory creation above needs no
 Git. Initialization creates neither a commit nor a remote.
 
-For this alternative, create each linked file at its displayed relative path,
-using the full reference content as that file is introduced. Create its parent
-directory first with `mkdir -p`. Copy [.gitignore](.gitignore) and
-[LICENSE](LICENSE) now. Chapter 2
+For this alternative, keep the supplied reference project open separately:
+links refer to files there, not files already present in your empty directory.
+Type the inline examples below for the small configuration and task files;
+for larger files, copy the complete linked reference content as introduced.
+Create parent directories first with `mkdir -p`. Copy [.gitignore](.gitignore)
+and [LICENSE](LICENSE) from that reference now. This is reconstruction from
+source metadata, not writing Linux or BitBake themselves from scratch. Chapter 2
 introduces the host checker; Chapter 3 introduces bootstrap, the wrapper and
 all configuration. Later chapters introduce the remaining classes and recipes.
 You are reconstructing the same final project, not switching between chapter
@@ -163,6 +166,157 @@ lengthy advice about it. Do not edit files inside `tools/bitbake`.
 - [meta-core/classes/base.bbclass](meta-core/classes/base.bbclass)
 
 For reconstruction, create all these files before the next chapter.
+
+### Type the initial metadata
+
+Each block is the **complete file content**, not a shell command. Save it at
+the path above it. Here are the directories to create in your project:
+
+```sh
+mkdir -p meta-core/conf/machine meta-core/conf/distro meta-core/classes \
+    meta-bsp/conf meta-distro/conf
+```
+
+**`build/conf/bblayers.conf`**
+
+```bitbake
+BBPATH = "${TOPDIR}"
+BBLAYERS = "${TOPDIR}/../meta-core ${TOPDIR}/../meta-bsp ${TOPDIR}/../meta-distro"
+```
+
+**`build/conf/local.conf`**
+
+```bitbake
+MACHINE = "versatilepb"
+DISTRO = "bitbaker"
+BB_NUMBER_THREADS = "2"
+PARALLEL_MAKE = "-j 4"
+```
+
+**`meta-core/conf/layer.conf`**
+
+```bitbake
+BBPATH .= ":${LAYERDIR}"
+BBFILES += "${LAYERDIR}/recipes-*/*/*.bb"
+BBFILE_COLLECTIONS += "core"
+BBFILE_PATTERN_core = "^${LAYERDIR}/"
+BBFILE_PRIORITY_core = "5"
+LAYERSERIES_CORENAMES = "bitbaker-1"
+LAYERSERIES_COMPAT_core = "bitbaker-1"
+```
+
+**`meta-bsp/conf/layer.conf`**
+
+```bitbake
+BBPATH .= ":${LAYERDIR}"
+BBFILES += "${LAYERDIR}/recipes-*/*/*.bb"
+BBFILE_COLLECTIONS += "bsp"
+BBFILE_PATTERN_bsp = "^${LAYERDIR}/"
+BBFILE_PRIORITY_bsp = "10"
+LAYERDEPENDS_bsp = "core"
+LAYERSERIES_COMPAT_bsp = "bitbaker-1"
+```
+
+**`meta-distro/conf/layer.conf`**
+
+```bitbake
+BBPATH .= ":${LAYERDIR}"
+BBFILES += "${LAYERDIR}/recipes-*/*/*.bb"
+BBFILE_COLLECTIONS += "distro"
+BBFILE_PATTERN_distro = "^${LAYERDIR}/"
+BBFILE_PRIORITY_distro = "10"
+LAYERDEPENDS_distro = "core bsp"
+LAYERSERIES_COMPAT_distro = "bitbaker-1"
+```
+
+**`meta-core/conf/bitbake.conf`**
+
+```bitbake
+PN = "${@bb.parse.vars_from_file(d.getVar('FILE', False), d)[0] or 'unknown'}"
+PV = "${@bb.parse.vars_from_file(d.getVar('FILE', False), d)[1] or '1.0'}"
+PR = "r0"
+PF = "${PN}-${PV}-${PR}"
+DEPENDS = ""
+PROVIDES = ""
+SRC_URI = ""
+FILE_DIRNAME = "${@os.path.dirname(d.getVar('FILE'))}"
+FILESPATH = "${FILE_DIRNAME}/files"
+
+TMPDIR = "${TOPDIR}/tmp"
+DL_DIR = "${TOPDIR}/../downloads"
+CACHE = "${TOPDIR}/cache"
+PERSISTENT_DIR = "${CACHE}"
+WORKDIR = "${TMPDIR}/work/${MACHINE}/${PF}"
+S = "${WORKDIR}/${PN}-${PV}"
+B = "${WORKDIR}/build"
+D = "${WORKDIR}/image"
+T = "${WORKDIR}/temp"
+STAMP = "${TMPDIR}/stamps/${MACHINE}/${PF}"
+COMPONENTS_DIR = "${TMPDIR}/components/${MACHINE}"
+DEPLOY_DIR_IMAGE = "${TMPDIR}/deploy/images/${MACHINE}"
+
+BB_DEFAULT_TASK = "build"
+BB_SIGNATURE_HANDLER = "basichash"
+BB_STRICT_CHECKSUM = "1"
+BB_NUMBER_THREADS ?= "2"
+PARALLEL_MAKE ?= "-j 4"
+BB_BASEHASH_IGNORE_VARS = "BB_TASKHASH BB_NUMBER_THREADS PARALLEL_MAKE PATH HOME USER LOGNAME PWD SHELL"
+export PATH
+export HOME
+export LC_ALL = "C"
+
+require conf/local.conf
+require conf/machine/${MACHINE}.conf
+require conf/distro/${DISTRO}.conf
+OVERRIDES = "${MACHINE}:${DISTRO}"
+```
+
+**`meta-core/conf/machine/versatilepb.conf`**
+
+```bitbake
+TARGET_ARCH = "arm"
+TARGET_PREFIX = "arm-linux-gnueabi-"
+KERNEL_DEFCONFIG = "versatile_defconfig"
+KERNEL_DEVICETREE = "qemu-versatile-pb.dtb"
+QEMU_MACHINE = "versatilepb"
+QEMU_MEM = "128"
+QEMU_APPEND = "console=ttyAMA0 root=/dev/mmcblk0 rootwait rw"
+```
+
+**`meta-core/conf/distro/bitbaker.conf`**
+
+```bitbake
+DISTRO_NAME = "BitBaker Linux"
+DISTRO_VERSION = "1.0"
+IMAGE_ROOTFS_SIZE = "65536"
+IMAGE_LABEL = "bitbaker"
+```
+
+**`meta-core/classes/base.bbclass`**
+
+```bitbake
+bbfatal() {
+    echo "ERROR: $*" >&2
+    exit 1
+}
+
+do_build() {
+    :
+}
+do_build[noexec] = "1"
+addtask build
+
+python do_listtasks() {
+    for name in sorted(d.keys()):
+        if d.getVarFlag(name, "task"):
+            bb.plain(name)
+}
+do_listtasks[nostamp] = "1"
+addtask listtasks
+```
+
+### How these files fit together
+
 `bblayers.conf` starts `BBPATH` at the build directory and lists the three
 layers. Each `layer.conf` extends the configuration/class search path and adds
 its `recipes-*/*/*.bb` recipe pattern. `bsp` depends on `core`; `distro` depends
@@ -215,6 +369,21 @@ Our default target task is `build`, implemented by `do_build`.
 `do_greet` is a shell function. `addtask greet before do_build` turns it into a
 task and orders it before the default completion task. The greeting recipe
 does not inherit a fetch or compiler framework.
+
+```sh
+mkdir -p meta-core/recipes-demo/hello
+```
+
+**`meta-core/recipes-demo/hello/hello_1.0.bb`**
+
+```bitbake
+SUMMARY = "First task: no compiler or downloads required"
+
+do_greet() {
+    echo "Hello from standalone BitBake!"
+}
+addtask greet before do_build
+```
 
 ```sh
 scripts/bb hello
@@ -312,6 +481,49 @@ it needs.
 **Inspect:** [build.bbclass](meta-core/classes/build.bbclass),
 [fetch.bbclass](meta-core/classes/fetch.bbclass) and the signature settings in
 [bitbake.conf](meta-core/conf/bitbake.conf).
+
+These are the full shared classes; type them if reconstructing:
+
+**`meta-core/classes/fetch.bbclass`**
+
+```bitbake
+python do_fetch() {
+    bb.fetch2.Fetch((d.getVar("SRC_URI") or "").split(), d).download()
+}
+do_fetch[network] = "1"
+
+python do_unpack() {
+    bb.fetch2.Fetch((d.getVar("SRC_URI") or "").split(), d).unpack(d.getVar("WORKDIR"))
+}
+do_unpack[cleandirs] = "${S} ${B}"
+do_unpack[dirs] = "${WORKDIR}"
+do_fetch[file-checksums] = "${@bb.fetch2.get_checksum_file_list(d)}"
+addtask fetch before do_build
+addtask unpack after do_fetch before do_build
+```
+
+**`meta-core/classes/build.bbclass`**
+
+```bitbake
+inherit fetch
+
+do_configure() {
+    :
+}
+do_compile() {
+    :
+}
+do_install() {
+    :
+}
+do_configure[dirs] = "${B}"
+do_compile[dirs] = "${B}"
+do_install[dirs] = "${B}"
+do_install[cleandirs] = "${D}"
+addtask configure after do_unpack before do_build
+addtask compile after do_configure before do_build
+addtask install after do_compile before do_build
+```
 
 For recipes inheriting `build`, the chain is:
 
