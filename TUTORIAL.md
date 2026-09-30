@@ -497,7 +497,9 @@ cmp build/tmp/work/versatilepb/linux-7.2.6-r0/build/qemu-versatile-pb.dtb \
     build/tmp/deploy/images/versatilepb/versatile-pb.dtb
 build/tmp/work/versatilepb/linux-7.2.6-r0/build/scripts/dtc/dtc \
     -I dtb -O dts build/tmp/deploy/images/versatilepb/versatile-pb.dtb \
-    | grep -A 14 'mmc@5000'
+    -o build/tmp/deployed-tree.dts 2>build/tmp/dtc-decode.log \
+    || { cat build/tmp/dtc-decode.log >&2; exit 1; }
+grep -A 14 'mmc@5000' build/tmp/deployed-tree.dts
 ```
 
 Expected: the four selected settings are `y`, and both nonempty deploy files
@@ -506,6 +508,13 @@ exist. `cmp` succeeds silently, and the decoded first-slot node contains
 numeric phandles and typically hexadecimal IRQ values `0x16` and `0x01`).
 Building a kernel is not yet booting a system: there is no root image
 until Chapter 13.
+
+Decoding also reports upstream board-description warnings such as
+`unit_address_vs_reg` and `interrupt_map`. We save diagnostics in
+`build/tmp/dtc-decode.log` rather than mixing them with the node being
+inspected. Read that log if needed; a decoding failure still prints its
+diagnostics and stops the command sequence. Do not discard all stderr with
+`2>/dev/null`, which would also hide real errors.
 
 ## Chapter 10 — Build static BusyBox for ARMv5
 
