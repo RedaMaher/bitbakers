@@ -169,6 +169,38 @@ are the success checks. The checkout deliberately has a detached HEAD
 (a fixed release, not a branch to develop on); bootstrap suppresses Git's
 lengthy advice about it. Do not edit files inside `tools/bitbake`.
 
+Here is a visual overview of how these configuration files connect and what they control.
+
+```mermaid
+graph TD
+    subgraph 1. Workspace Settings
+        BBL[bblayers.conf<br>Lists the 3 meta-layers]
+        LOC[local.conf<br>User settings: CPU cores & Target Machine]
+    end
+
+    subgraph 2. Layer Boundaries
+        LC[layer.conf<br>Tells BitBake where to find recipes]
+    end
+
+    subgraph 3. The Core Brain
+        BB[bitbake.conf<br>Sets standard paths like WORKDIR, S, D]
+        MACH[versatilepb.conf<br>Hardware info: ARM arch, DTB, Kernel args]
+        DIST[bitbaker.conf<br>Software info: OS Name, Rootfs size]
+        BASE[base.bbclass<br>Base logic: Default build tasks]
+    end
+
+    BBL -->|Points to| LC
+    LC -->|Loads| BB
+    BB -->|Requires| LOC
+    BB -->|Requires| MACH
+    BB -->|Requires| DIST
+    BB -.->|Inherited by recipes| BASE
+
+    style BB fill:#888,stroke:#333,stroke-width:2px
+```
+*Note on Environment Isolation:* Notice how `bitbake.conf` exports `LC_ALL = "C"`. Even though we generated `en_US.UTF-8` for the host in Chapter 2, BitBake isolates the recipe build tasks with a standardized `C` locale to ensure the build behaves identically regardless of your personal computer's language settings.
+
+
 **Inspect these complete configuration files now:**
 
 - [build/conf/bblayers.conf](build/conf/bblayers.conf)
@@ -597,6 +629,26 @@ signature generation rather than a normal task execution.
 These hashes do not make an unpinned host compiler reproducible. Record your
 host tool versions when comparing builds.
 
+BitBake uses signatures (hashes) to know if a task needs to run. If any input changes, the signature changes, the old stamp is ignored, and the task reruns. 
+
+```mermaid
+graph LR
+    subgraph Inputs
+        A[Recipe Code]
+        B[Variables & Metadata]
+        C[Prerequisite Tasks]
+    end
+    
+    A --> H{Signature<br>Hash}
+    B --> H
+    C --> H
+    
+    H -->|Matches Old Stamp| S[Skip Task<br>Use Cache]
+    H -->|New / Changed| R[Execute Task<br>Generate New Stamp]
+    
+    style H fill:#f9a,stroke:#333,stroke-width:2px
+```
+
 ### Exercise: predict, edit, build, compare
 
 Before running this, predict which task must rerun if only the greeting text
@@ -696,6 +748,25 @@ need their variables while parsing.
 [bitbaker.conf](meta-core/conf/distro/bitbaker.conf) and
 [local.conf](build/conf/local.conf).
 
+Here is how the configurations divide responsibilities. The machine handles the physical/emulated hardware constraints, while the distro handles the software identity.
+
+ ```mermaid
+ graph TD
+     A[local.conf] -->|Defines MACHINE| B(versatilepb.conf)
+     A -->|Defines DISTRO| C(bitbaker.conf)
+     
+     subgraph Hardware Policy
+         B -->|Architecture| B1[ARMv5TE]
+         B -->|Boot| B2[qemu-versatile-pb.dtb]
+         B -->|Arguments| B3[console=ttyAMA0 root=/dev/mmcblk0]
+     end
+     
+     subgraph Software Policy
+         C -->|Identity| C1[BitBaker Linux 1.0]
+         C -->|Storage| C2[IMAGE_ROOTFS_SIZE = 64MB]
+     end
+```
+
 The machine selects `arm`, `arm-linux-gnueabi-`, `versatile_defconfig`, and
 `qemu-versatile-pb.dtb`. This is built in the kernel build directory and
 deployed under the stable filename `versatile-pb.dtb`. The distro names the
@@ -768,7 +839,17 @@ describe the SD wiring needed by QEMU 10.2.1:
 - The unused second slot is disabled.
 
 Our original DTS includes the upstream physical-board DTS and overrides only
-these nodes. The upstream evidence is in QEMU 10.2.1's
+these nodes. 
+
+```mermaid 
+ graph TD
+     A[Physical VersatilePB DTS] --> C(qemu-versatile-pb.dts)
+     B[QEMU Specific Overrides: <br> non-removable SD, SIC IRQs] --> C
+     C -->|gcc -E & dtc| D((versatile-pb.dtb deployed))
+```
+
+
+The upstream evidence is in QEMU 10.2.1's
 [versatilepb.c](https://github.com/qemu/qemu/blob/v10.2.1/hw/arm/versatilepb.c)
 (PL181 creation and interrupt connections) and
 [arm_sysctl.c](https://github.com/qemu/qemu/blob/v10.2.1/hw/misc/arm_sysctl.c)
@@ -890,8 +971,26 @@ install -> stage -> build
 
 Stage recreates `COMPONENTS_DIR/PN`, then copies `D/.` there with `cp -a`,
 preserving modes and symlinks. This location holds files intended to become
-the guest rootfs. It is **not a compiler sysroot**: no recipe uses it to
+the guest rootfs. 
+
+
+```mermaid
+graph LR
+     A[Source Archive] -->|do_fetch| B(downloads/)
+     B -->|do_unpack| C(WORKDIR / S)
+     C -->|do_configure| D(WORKDIR / build)
+     D -->|do_compile| E(WORKDIR / build)
+     E -->|do_install| F(WORKDIR / image)
+     F -->|do_stage| G[(COMPONENTS_DIR)]
+     
+     style A fill:#42c,stroke:#333,stroke-width:2px
+     style G fill:#69f,stroke:#333,stroke-width:2px
+```
+
+It is **not a compiler sysroot**: no recipe uses it to
 resolve compiler headers, libraries or native build tools.
+
+
 
 ```sh
 scripts/bb -c listtasks busybox
@@ -972,9 +1071,38 @@ duplicate files, conflicting symlinks and file/directory clashes fail with
 `Rootfs collision`. Symlinks are preserved during copying. Collision checking
 avoids an accidental “last component wins” policy.
 
+The `simple-image` recipe doesn't compile C code; it collects the outputs of other recipes.
+
+```mermaid
+graph TD
+     subgraph Staged Components
+         BB[busybox]
+         BF[base-files]
+         HA["hello-arm<br><i>(Optional)</i>"]
+     end
+     
+     subgraph Deploy Directory
+         K["zImage & DTB<br><i>from linux recipe</i>"]
+     end
+
+     BB -->|"Copied via<br>IMAGE_INSTALL"| R("do_rootfs<br>Builds Root Directory")
+     BF -->|"Copied via<br>IMAGE_INSTALL"| R
+     HA -.->|"Copied via<br>IMAGE_INSTALL"| R
+     
+     R -->|"Python Helper<br>Collision Check & mke2fs"| I{do_image}
+     K -->|Dependency| I
+     
+     I --> OUT1((rootfs.ext2))
+     I --> OUT2[run-qemu.sh]
+     
+     style OUT1 fill:#b22,stroke:#333,stroke-width:2px
+     style OUT2 fill:#b2e,stroke:#333,stroke-width:2px
+```
+
 The Python helper then:
 
 1. Requires a power-of-two size of at least 8192 KiB, an existing root tree and
+
    a label of 1–16 bytes.
 2. Creates a candidate image beside the final output, not by mounting a device.
 3. Runs `mke2fs -d` to populate ext2 from the assembled tree, using 1 KiB blocks,
@@ -1030,6 +1158,29 @@ directory, and the ext2 file is attached as an SD card.
 
 **Inspect:** [scripts/run-qemu](scripts/run-qemu) and the launcher-generation
 portion of [image.bbclass](meta-core/classes/image.bbclass).
+
+Here is how the host script connects the compiled BitBake artifacts to the QEMU emulator to launch the system:
+
+```mermaid
+graph LR
+     subgraph Host Machine
+         S[scripts/run-qemu] -->|Executes| L[run-qemu.sh<br>Generated Launcher]
+     end
+
+     subgraph QEMU Virtual Hardware
+         L -->|-kernel| K(zImage)
+         L -->|-dtb| D(versatile-pb.dtb)
+         L -->|-drive| SD[(rootfs.ext2<br>Virtual SD Card)]
+     end
+
+     K -->|Mounts /dev/mmcblk0| SD
+     SD -->|Executes| I[BusyBox /sbin/init]
+     
+     style K fill:#66f,stroke:#333
+     style D fill:#36c,stroke:#333
+     style SD fill:#b1e,stroke:#333
+```
+
 
 For reconstruction, create this host wrapper now and make it executable; do
 not hand-write the deployed launcher. The wrapper checks
